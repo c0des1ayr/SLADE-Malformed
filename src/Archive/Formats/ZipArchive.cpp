@@ -49,6 +49,7 @@ using namespace slade;
 //
 // -----------------------------------------------------------------------------
 CVAR(Bool, zip_allow_duplicate_names, false, CVar::Save)
+CVAR(Bool, zip_save_with_duplicate_entries, false, CVar::Save)
 
 
 // -----------------------------------------------------------------------------
@@ -254,15 +255,18 @@ bool ZipArchive::write(MemChunk& mc, bool update)
 // -----------------------------------------------------------------------------
 bool ZipArchive::write(string_view filename, bool update)
 {
-	// Check for entries with duplicate names (not allowed for zips)
-	auto all_dirs = rootDir()->allDirectories();
-	all_dirs.insert(all_dirs.begin(), rootDir());
-	for (const auto& dir : all_dirs)
+	if (!zip_save_with_duplicate_entries)
 	{
-		if (auto* dup_entry = dir->findDuplicateEntryName())
+		// Check for entries with duplicate names (not allowed for zips)
+		auto all_dirs = rootDir()->allDirectories();
+		all_dirs.insert(all_dirs.begin(), rootDir());
+		for (const auto& dir : all_dirs)
 		{
-			global::error = fmt::format("Multiple entries named {} found in {}", dup_entry->name(), dup_entry->path());
-			return false;
+			if (auto* dup_entry = dir->findDuplicateEntryName())
+			{
+				global::error = fmt::format("Multiple entries named {} found in {}", dup_entry->name(), dup_entry->path());
+				return false;
+			}
 		}
 	}
 
